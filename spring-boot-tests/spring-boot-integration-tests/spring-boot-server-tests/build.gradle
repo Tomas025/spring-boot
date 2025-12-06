@@ -6,10 +6,6 @@ plugins {
 
 description = "Spring Boot Server Integration Tests"
 
-toolchain {
-	maximumCompatibleJavaVersion = JavaLanguageVersion.of(15)
-}
-
 configurations {
 	testRepository
 }

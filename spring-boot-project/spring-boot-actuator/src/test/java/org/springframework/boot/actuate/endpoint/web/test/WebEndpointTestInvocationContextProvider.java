@@ -32,7 +32,6 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestTemplateInvocationContext;
 import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
@@ -161,15 +160,13 @@ class WebEndpointTestInvocationContextProvider implements TestTemplateInvocation
 		}
 
 		@Override
-		public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
-				throws ParameterResolutionException {
+		public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
 			Class<?> type = parameterContext.getParameter().getType();
 			return type.equals(WebTestClient.class) || type.isAssignableFrom(ConfigurableApplicationContext.class);
 		}
 
 		@Override
-		public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
-				throws ParameterResolutionException {
+		public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
 			Class<?> type = parameterContext.getParameter().getType();
 			if (type.equals(WebTestClient.class)) {
 				return createWebTestClient();

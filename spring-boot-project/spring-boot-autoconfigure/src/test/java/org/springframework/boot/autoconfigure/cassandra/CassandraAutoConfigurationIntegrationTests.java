@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -74,7 +73,7 @@ class CassandraAutoConfigurationIntegrationTests {
 			return new BeanPostProcessor() {
 
 				@Override
-				public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+				public Object postProcessAfterInitialization(Object bean, String beanName) {
 					if (bean instanceof DriverConfigLoader) {
 						return spy(bean);
 					}

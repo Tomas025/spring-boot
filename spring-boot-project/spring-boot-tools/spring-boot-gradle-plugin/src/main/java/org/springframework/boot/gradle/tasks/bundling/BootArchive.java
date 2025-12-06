@@ -26,6 +26,7 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.Optional;
 
 /**
@@ -82,7 +83,7 @@ public interface BootArchive extends Task {
 	 * @return the launch script configuration, or {@code null} if the launch script has
 	 * not been configured.
 	 */
-	@Input
+	@Nested
 	@Optional
 	LaunchScriptConfiguration getLaunchScript();
 
@@ -127,27 +128,5 @@ public interface BootArchive extends Task {
 	 * @since 2.0.7
 	 */
 	void setClasspath(FileCollection classpath);
-
-	/**
-	 * Returns {@code true} if the Devtools jar should be excluded, otherwise
-	 * {@code false}.
-	 * @return {@code true} if the Devtools jar should be excluded, or {@code false} if
-	 * not
-	 * @deprecated since 2.3.0 for removal in 2.5.0 in favor of configuring a classpath
-	 * that does not include development-only dependencies
-	 */
-	@Input
-	@Deprecated
-	boolean isExcludeDevtools();
-
-	/**
-	 * Sets whether or not the Devtools jar should be excluded.
-	 * @param excludeDevtools {@code true} if the Devtools jar should be excluded, or
-	 * {@code false} if not
-	 * @deprecated since 2.3.0 for removal in 2.5.0 in favor of configuring a classpath
-	 * that does not include development-only dependencies
-	 */
-	@Deprecated
-	void setExcludeDevtools(boolean excludeDevtools);
 
 }

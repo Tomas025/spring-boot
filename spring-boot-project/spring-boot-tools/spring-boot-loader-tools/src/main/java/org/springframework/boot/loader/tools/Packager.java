@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
+import java.util.function.Function;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -203,7 +203,7 @@ public abstract class Packager {
 		writer.writeManifest(buildManifest(sourceJar));
 		writeLoaderClasses(writer);
 		writer.writeEntries(sourceJar, getEntityTransformer(), libraries.getUnpackHandler(),
-				libraries.getEntryFilter());
+				libraries.getLibraryLookup());
 		libraries.write(writer);
 		if (isLayered()) {
 			writeLayerIndex(writer);
@@ -221,7 +221,7 @@ public abstract class Packager {
 	}
 
 	private void writeLayerIndex(AbstractJarWriter writer) throws IOException {
-		String name = ((RepackagingLayout) this.layout).getLayersIndexFileLocation();
+		String name = this.layout.getLayersIndexFileLocation();
 		if (StringUtils.hasLength(name)) {
 			Layer layer = this.layers.getLayer(name);
 			this.layersIndex.add(layer, name);
@@ -351,27 +351,22 @@ public abstract class Packager {
 
 	private void addBootAttributes(Attributes attributes) {
 		attributes.putValue(BOOT_VERSION_ATTRIBUTE, getClass().getPackage().getImplementationVersion());
-		Layout layout = getLayout();
-		if (layout instanceof RepackagingLayout) {
-			addBootBootAttributesForRepackagingLayout(attributes, (RepackagingLayout) layout);
-		}
-		else {
-			addBootBootAttributesForPlainLayout(attributes);
-		}
+		addBootAttributesForLayout(attributes);
 	}
 
-	private void addBootBootAttributesForRepackagingLayout(Attributes attributes, RepackagingLayout layout) {
-		attributes.putValue(BOOT_CLASSES_ATTRIBUTE, layout.getRepackagedClassesLocation());
+	private void addBootAttributesForLayout(Attributes attributes) {
+		Layout layout = getLayout();
+		if (layout instanceof RepackagingLayout) {
+			attributes.putValue(BOOT_CLASSES_ATTRIBUTE, ((RepackagingLayout) layout).getRepackagedClassesLocation());
+		}
+		else {
+			attributes.putValue(BOOT_CLASSES_ATTRIBUTE, layout.getClassesLocation());
+		}
 		putIfHasLength(attributes, BOOT_LIB_ATTRIBUTE, getLayout().getLibraryLocation("", LibraryScope.COMPILE));
 		putIfHasLength(attributes, BOOT_CLASSPATH_INDEX_ATTRIBUTE, layout.getClasspathIndexFileLocation());
 		if (isLayered()) {
 			putIfHasLength(attributes, BOOT_LAYERS_INDEX_ATTRIBUTE, layout.getLayersIndexFileLocation());
 		}
-	}
-
-	private void addBootBootAttributesForPlainLayout(Attributes attributes) {
-		attributes.putValue(BOOT_CLASSES_ATTRIBUTE, getLayout().getClassesLocation());
-		putIfHasLength(attributes, BOOT_LIB_ATTRIBUTE, getLayout().getLibraryLocation("", LibraryScope.COMPILE));
 	}
 
 	private void putIfHasLength(Attributes attributes, String name, String value) {
@@ -381,7 +376,7 @@ public abstract class Packager {
 	}
 
 	private boolean isLayered() {
-		return this.layers != null && getLayout() instanceof Layouts.Jar;
+		return this.layers != null;
 	}
 
 	/**
@@ -468,7 +463,7 @@ public abstract class Packager {
 
 		private final UnpackHandler unpackHandler;
 
-		private final Predicate<JarEntry> entryFilter;
+		private final Function<JarEntry, Library> libraryLookup;
 
 		PackagedLibraries(Libraries libraries) throws IOException {
 			libraries.doWithLibraries((library) -> {
@@ -480,7 +475,7 @@ public abstract class Packager {
 				addLibrary(JarModeLibrary.LAYER_TOOLS);
 			}
 			this.unpackHandler = new PackagedLibrariesUnpackHandler();
-			this.entryFilter = this::isIncluded;
+			this.libraryLookup = this::lookup;
 		}
 
 		private void addLibrary(Library library) {
@@ -492,17 +487,16 @@ public abstract class Packager {
 			}
 		}
 
-		private boolean isIncluded(JarEntry entry) {
-			Library library = this.libraries.get(entry.getName());
-			return library == null || library.isIncluded();
+		private Library lookup(JarEntry entry) {
+			return this.libraries.get(entry.getName());
 		}
 
 		UnpackHandler getUnpackHandler() {
 			return this.unpackHandler;
 		}
 
-		Predicate<JarEntry> getEntryFilter() {
-			return this.entryFilter;
+		Function<JarEntry, Library> getLibraryLookup() {
+			return this.libraryLookup;
 		}
 
 		void write(AbstractJarWriter writer) throws IOException {

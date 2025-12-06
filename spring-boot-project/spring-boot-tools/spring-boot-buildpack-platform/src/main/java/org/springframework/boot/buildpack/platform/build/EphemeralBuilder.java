@@ -52,10 +52,12 @@ class EphemeralBuilder {
 	 * @param builderMetadata the builder metadata
 	 * @param creator the builder creator
 	 * @param env the builder env
+	 * @param buildpacks an optional set of buildpacks to apply
 	 * @throws IOException on IO error
 	 */
 	EphemeralBuilder(BuildOwner buildOwner, Image builderImage, ImageReference targetImage,
-			BuilderMetadata builderMetadata, Creator creator, Map<String, String> env) throws IOException {
+			BuilderMetadata builderMetadata, Creator creator, Map<String, String> env, Buildpacks buildpacks)
+			throws IOException {
 		ImageReference name = ImageReference.random("pack.local/builder/").inTaggedForm();
 		this.buildOwner = buildOwner;
 		this.creator = creator;
@@ -66,6 +68,9 @@ class EphemeralBuilder {
 			update.withTag(name);
 			if (env != null && !env.isEmpty()) {
 				update.withNewLayer(getEnvLayer(env));
+			}
+			if (buildpacks != null) {
+				buildpacks.apply(update::withNewLayer);
 			}
 		});
 	}

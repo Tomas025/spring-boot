@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import org.springframework.beans.BeanWrapper;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -309,7 +308,7 @@ class MockitoPostProcessorTests {
 	static class FactoryBeanRegisteringPostProcessor implements BeanFactoryPostProcessor, Ordered {
 
 		@Override
-		public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+		public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 			RootBeanDefinition beanDefinition = new RootBeanDefinition(TestFactoryBean.class);
 			((BeanDefinitionRegistry) beanFactory).registerBeanDefinition("test", beanDefinition);
 		}
@@ -325,7 +324,7 @@ class MockitoPostProcessorTests {
 
 		@Override
 		@SuppressWarnings("unchecked")
-		public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+		public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 			Map<String, BeanWrapper> cache = (Map<String, BeanWrapper>) ReflectionTestUtils.getField(beanFactory,
 					"factoryBeanInstanceCache");
 			Assert.isTrue(cache.isEmpty(), "Early initialization of factory bean triggered.");

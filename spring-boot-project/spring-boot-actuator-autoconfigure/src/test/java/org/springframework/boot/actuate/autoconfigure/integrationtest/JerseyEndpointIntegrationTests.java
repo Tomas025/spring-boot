@@ -58,6 +58,19 @@ class JerseyEndpointIntegrationTests {
 	}
 
 	@Test
+	void linksPageIsNotAvailableWhenDisabled() {
+		getContextRunner(new Class<?>[] { EndpointsConfiguration.class, ResourceConfigConfiguration.class })
+				.withPropertyValues("management.endpoints.web.discovery.enabled:false").run((context) -> {
+					int port = context
+							.getSourceApplicationContext(AnnotationConfigServletWebServerApplicationContext.class)
+							.getWebServer().getPort();
+					WebTestClient client = WebTestClient.bindToServer().baseUrl("http://localhost:" + port)
+							.responseTimeout(Duration.ofMinutes(5)).build();
+					client.get().uri("/actuator").exchange().expectStatus().isNotFound();
+				});
+	}
+
+	@Test
 	void actuatorEndpointsWhenUserProvidedResourceConfigBeanNotAvailable() {
 		testJerseyEndpoints(new Class<?>[] { EndpointsConfiguration.class });
 	}
@@ -78,7 +91,7 @@ class JerseyEndpointIntegrationTests {
 	}
 
 	protected void testJerseyEndpoints(Class<?>[] userConfigurations) {
-		getContextRunner(userConfigurations, getAutoconfigurations()).run((context) -> {
+		getContextRunner(userConfigurations).run((context) -> {
 			int port = context.getSourceApplicationContext(AnnotationConfigServletWebServerApplicationContext.class)
 					.getWebServer().getPort();
 			WebTestClient client = WebTestClient.bindToServer().baseUrl("http://localhost:" + port)
@@ -89,10 +102,12 @@ class JerseyEndpointIntegrationTests {
 		});
 	}
 
-	private WebApplicationContextRunner getContextRunner(Class<?>[] userConfigurations, Class<?>[] autoConfigurations) {
+	WebApplicationContextRunner getContextRunner(Class<?>[] userConfigurations,
+			Class<?>... additionalAutoConfigurations) {
 		FilteredClassLoader classLoader = new FilteredClassLoader(DispatcherServlet.class);
 		return new WebApplicationContextRunner(AnnotationConfigServletWebServerApplicationContext::new)
-				.withClassLoader(classLoader).withConfiguration(AutoConfigurations.of(autoConfigurations))
+				.withClassLoader(classLoader)
+				.withConfiguration(AutoConfigurations.of(getAutoconfigurations(additionalAutoConfigurations)))
 				.withUserConfiguration(userConfigurations)
 				.withPropertyValues("management.endpoints.web.exposure.include:*", "server.port:0");
 	}

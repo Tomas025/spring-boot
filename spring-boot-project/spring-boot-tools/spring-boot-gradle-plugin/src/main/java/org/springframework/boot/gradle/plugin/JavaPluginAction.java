@@ -42,6 +42,7 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.tasks.bundling.Jar;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.jvm.toolchain.JavaToolchainSpec;
@@ -75,7 +76,7 @@ final class JavaPluginAction implements PluginApplicationAction {
 
 	@Override
 	public void execute(Project project) {
-		disableJarTask(project);
+		classifyJarTask(project);
 		configureBuildTask(project);
 		configureDevelopmentOnlyConfiguration(project);
 		TaskProvider<BootJar> bootJar = configureBootJarTask(project);
@@ -87,8 +88,9 @@ final class JavaPluginAction implements PluginApplicationAction {
 		configureAdditionalMetadataLocations(project);
 	}
 
-	private void disableJarTask(Project project) {
-		project.getTasks().named(JavaPlugin.JAR_TASK_NAME).configure((task) -> task.setEnabled(false));
+	private void classifyJarTask(Project project) {
+		project.getTasks().named(JavaPlugin.JAR_TASK_NAME, Jar.class)
+				.configure((task) -> task.getArchiveClassifier().convention("plain"));
 	}
 
 	private void configureBuildTask(Project project) {
@@ -123,7 +125,7 @@ final class JavaPluginAction implements PluginApplicationAction {
 		project.getTasks().register(SpringBootPlugin.BOOT_BUILD_IMAGE_TASK_NAME, BootBuildImage.class, (buildImage) -> {
 			buildImage.setDescription("Builds an OCI image of the application using the output of the bootJar task");
 			buildImage.setGroup(BasePlugin.BUILD_GROUP);
-			buildImage.getJar().set(bootJar.get().getArchiveFile());
+			buildImage.getArchiveFile().set(bootJar.get().getArchiveFile());
 			buildImage.getTargetJavaVersion()
 					.set(project.provider(() -> javaPluginConvention(project).getTargetCompatibility()));
 		});
@@ -149,14 +151,7 @@ final class JavaPluginAction implements PluginApplicationAction {
 				}
 				return Collections.emptyList();
 			});
-			try {
-				run.getMainClass().convention(resolveProvider.flatMap(ResolveMainClassName::readMainClassName));
-			}
-			catch (NoSuchMethodError ex) {
-				run.getInputs().file(resolveProvider.map((task) -> task.getOutputFile()));
-				run.conventionMapping("main",
-						() -> resolveProvider.flatMap(ResolveMainClassName::readMainClassName).get());
-			}
+			run.getMainClass().convention(resolveProvider.flatMap(ResolveMainClassName::readMainClassName));
 			configureToolchainConvention(project, run);
 		});
 	}

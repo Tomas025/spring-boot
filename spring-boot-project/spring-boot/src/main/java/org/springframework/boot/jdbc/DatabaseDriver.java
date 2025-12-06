@@ -70,7 +70,7 @@ public enum DatabaseDriver {
 	/**
 	 * Maria DB.
 	 */
-	MARIADB("MySQL", "org.mariadb.jdbc.Driver", "org.mariadb.jdbc.MariaDbDataSource", "SELECT 1") {
+	MARIADB("MariaDB", "org.mariadb.jdbc.Driver", "org.mariadb.jdbc.MariaDbDataSource", "SELECT 1") {
 
 		@Override
 		public String getId() {
@@ -197,6 +197,12 @@ public enum DatabaseDriver {
 		}
 
 	},
+
+	/**
+	 * Apache Phoenix.
+	 * @since 2.5.0
+	 */
+	PHOENIX("Apache Phoenix", "org.apache.phoenix.jdbc.PhoenixDriver", null, "SELECT 1 FROM SYSTEM.CATALOG LIMIT 1"),
 
 	/**
 	 * Testcontainers.

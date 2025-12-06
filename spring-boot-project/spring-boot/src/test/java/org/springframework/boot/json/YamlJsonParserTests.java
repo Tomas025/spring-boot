@@ -34,7 +34,7 @@ class YamlJsonParserTests extends AbstractJsonParserTests {
 	}
 
 	@Test
-	void customTypesAreNotLoaded() throws Exception {
+	void customTypesAreNotLoaded() {
 		assertThatExceptionOfType(ConstructorException.class)
 				.isThrownBy(() -> getParser().parseMap("{value: !!java.net.URL [\"http://localhost:9000/\"]}"))
 				.withCauseInstanceOf(IllegalStateException.class);

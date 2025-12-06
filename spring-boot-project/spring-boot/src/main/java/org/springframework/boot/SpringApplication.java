@@ -17,7 +17,6 @@
 package org.springframework.boot;
 
 import java.lang.reflect.Constructor;
-import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -47,7 +46,6 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.boot.web.reactive.context.AnnotationConfigReactiveWebServerApplicationContext;
-import org.springframework.boot.web.reactive.context.StandardReactiveWebEnvironment;
 import org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextInitializer;
@@ -61,8 +59,6 @@ import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.GenericTypeResolver;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
-import org.springframework.core.convert.ConversionService;
-import org.springframework.core.convert.support.ConfigurableConversionService;
 import org.springframework.core.env.CommandLinePropertySource;
 import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -82,7 +78,6 @@ import org.springframework.util.ObjectUtils;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
-import org.springframework.web.context.support.StandardServletEnvironment;
 
 /**
  * Class that can be used to bootstrap and launch a Spring application from a Java main
@@ -205,6 +200,8 @@ public class SpringApplication {
 
 	private static final Log logger = LogFactory.getLog(SpringApplication.class);
 
+	static final SpringApplicationShutdownHook shutdownHook = new SpringApplicationShutdownHook();
+
 	private Set<Class<?>> primarySources;
 
 	private Set<String> sources = new LinkedHashSet<>();
@@ -248,6 +245,8 @@ public class SpringApplication {
 	private boolean isCustomEnvironment = false;
 
 	private boolean lazyInitialization = false;
+
+	private String environmentPrefix;
 
 	private ApplicationContextFactory applicationContextFactory = ApplicationContextFactory.DEFAULT;
 
@@ -374,6 +373,8 @@ public class SpringApplication {
 		ConfigurationPropertySources.attach(environment);
 		listeners.environmentPrepared(bootstrapContext, environment);
 		DefaultPropertiesPropertySource.moveToEnd(environment);
+		Assert.state(!environment.containsProperty("spring.main.environment-prefix"),
+				"Environment prefix cannot be set via properties.");
 		bindToSpringApplication(environment);
 		if (!this.isCustomEnvironment) {
 			environment = new EnvironmentConverter(getClassLoader()).convertEnvironmentIfNecessary(environment,
@@ -386,11 +387,11 @@ public class SpringApplication {
 	private Class<? extends StandardEnvironment> deduceEnvironmentClass() {
 		switch (this.webApplicationType) {
 		case SERVLET:
-			return StandardServletEnvironment.class;
+			return ApplicationServletEnvironment.class;
 		case REACTIVE:
-			return StandardReactiveWebEnvironment.class;
+			return ApplicationReactiveWebEnvironment.class;
 		default:
-			return StandardEnvironment.class;
+			return ApplicationEnvironment.class;
 		}
 	}
 
@@ -428,14 +429,9 @@ public class SpringApplication {
 
 	private void refreshContext(ConfigurableApplicationContext context) {
 		if (this.registerShutdownHook) {
-			try {
-				context.registerShutdownHook();
-			}
-			catch (AccessControlException ex) {
-				// Not allowed in some environments.
-			}
+			shutdownHook.registerApplicationContext(context);
 		}
-		refresh((ApplicationContext) context);
+		refresh(context);
 	}
 
 	private void configureHeadlessProperty() {
@@ -488,11 +484,11 @@ public class SpringApplication {
 		}
 		switch (this.webApplicationType) {
 		case SERVLET:
-			return new StandardServletEnvironment();
+			return new ApplicationServletEnvironment();
 		case REACTIVE:
-			return new StandardReactiveWebEnvironment();
+			return new ApplicationReactiveWebEnvironment();
 		default:
-			return new StandardEnvironment();
+			return new ApplicationEnvironment();
 		}
 	}
 
@@ -509,8 +505,7 @@ public class SpringApplication {
 	 */
 	protected void configureEnvironment(ConfigurableEnvironment environment, String[] args) {
 		if (this.addConversionService) {
-			ConversionService conversionService = ApplicationConversionService.getSharedInstance();
-			environment.setConversionService((ConfigurableConversionService) conversionService);
+			environment.setConversionService(new ApplicationConversionService());
 		}
 		configurePropertySources(environment, args);
 		configureProfiles(environment, args);
@@ -620,7 +615,7 @@ public class SpringApplication {
 			}
 		}
 		if (this.addConversionService) {
-			context.getBeanFactory().setConversionService(ApplicationConversionService.getSharedInstance());
+			context.getBeanFactory().setConversionService(context.getEnvironment().getConversionService());
 		}
 	}
 
@@ -749,18 +744,6 @@ public class SpringApplication {
 	 */
 	protected BeanDefinitionLoader createBeanDefinitionLoader(BeanDefinitionRegistry registry, Object[] sources) {
 		return new BeanDefinitionLoader(registry, sources);
-	}
-
-	/**
-	 * Refresh the underlying {@link ApplicationContext}.
-	 * @param applicationContext the application context to refresh
-	 * @deprecated since 2.3.0 for removal in 2.5.0 in favor of
-	 * {@link #refresh(ConfigurableApplicationContext)}
-	 */
-	@Deprecated
-	protected void refresh(ApplicationContext applicationContext) {
-		Assert.isInstanceOf(ConfigurableApplicationContext.class, applicationContext);
-		refresh((ConfigurableApplicationContext) applicationContext);
 	}
 
 	/**
@@ -1000,6 +983,7 @@ public class SpringApplication {
 	 * registered. Defaults to {@code true} to ensure that JVM shutdowns are handled
 	 * gracefully.
 	 * @param registerShutdownHook if the shutdown hook should be registered
+	 * @see #getShutdownHandlers()
 	 */
 	public void setRegisterShutdownHook(boolean registerShutdownHook) {
 		this.registerShutdownHook = registerShutdownHook;
@@ -1205,6 +1189,26 @@ public class SpringApplication {
 	}
 
 	/**
+	 * Return a prefix that should be applied when obtaining configuration properties from
+	 * the system environment.
+	 * @return the environment property prefix
+	 * @since 2.5.0
+	 */
+	public String getEnvironmentPrefix() {
+		return this.environmentPrefix;
+	}
+
+	/**
+	 * Set the prefix that should be applied when obtaining configuration properties from
+	 * the system environment.
+	 * @param environmentPrefix the environment property prefix to set
+	 * @since 2.5.0
+	 */
+	public void setEnvironmentPrefix(String environmentPrefix) {
+		this.environmentPrefix = environmentPrefix;
+	}
+
+	/**
 	 * Sets the type of Spring {@link ApplicationContext} that will be created. If not
 	 * specified defaults to {@link #DEFAULT_SERVLET_WEB_CONTEXT_CLASS} for web based
 	 * applications or {@link AnnotationConfigApplicationContext} for non web based
@@ -1305,6 +1309,16 @@ public class SpringApplication {
 	 */
 	public ApplicationStartup getApplicationStartup() {
 		return this.applicationStartup;
+	}
+
+	/**
+	 * Return a {@link SpringApplicationShutdownHandlers} instance that can be used to add
+	 * or remove handlers that perform actions before the JVM is shutdown.
+	 * @return a {@link SpringApplicationShutdownHandlers} instance
+	 * @since 2.5.1
+	 */
+	public static SpringApplicationShutdownHandlers getShutdownHandlers() {
+		return shutdownHook.getHandlers();
 	}
 
 	/**

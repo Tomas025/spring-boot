@@ -19,19 +19,22 @@ package org.springframework.boot.autoconfigure.data.elasticsearch;
 import java.util.Collections;
 
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.client.RestHighLevelClient;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.domain.EntityScanner;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.RefreshPolicy;
 import org.springframework.data.elasticsearch.core.convert.ElasticsearchConverter;
 import org.springframework.data.elasticsearch.core.convert.ElasticsearchCustomConversions;
 import org.springframework.data.elasticsearch.core.convert.MappingElasticsearchConverter;
@@ -61,9 +64,10 @@ abstract class ElasticsearchDataConfiguration {
 
 		@Bean
 		@ConditionalOnMissingBean
-		SimpleElasticsearchMappingContext mappingContext(
-				ElasticsearchCustomConversions elasticsearchCustomConversions) {
+		SimpleElasticsearchMappingContext mappingContext(ApplicationContext applicationContext,
+				ElasticsearchCustomConversions elasticsearchCustomConversions) throws ClassNotFoundException {
 			SimpleElasticsearchMappingContext mappingContext = new SimpleElasticsearchMappingContext();
+			mappingContext.setInitialEntitySet(new EntityScanner(applicationContext).scan(Document.class));
 			mappingContext.setSimpleTypeHolder(elasticsearchCustomConversions.getSimpleTypeHolder());
 			return mappingContext;
 		}
@@ -103,7 +107,7 @@ abstract class ElasticsearchDataConfiguration {
 				ElasticsearchConverter converter) {
 			ReactiveElasticsearchTemplate template = new ReactiveElasticsearchTemplate(client, converter);
 			template.setIndicesOptions(IndicesOptions.strictExpandOpenAndForbidClosed());
-			template.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+			template.setRefreshPolicy(RefreshPolicy.IMMEDIATE);
 			return template;
 		}
 

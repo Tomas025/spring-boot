@@ -20,6 +20,7 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.ExtraPropertiesExtension;
 import org.jetbrains.kotlin.gradle.plugin.KotlinPluginWrapper;
+import org.jetbrains.kotlin.gradle.plugin.KotlinPluginWrapperKt;
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile;
 
 /**
@@ -35,10 +36,14 @@ class KotlinPluginAction implements PluginApplicationAction {
 	public void execute(Project project) {
 		ExtraPropertiesExtension extraProperties = project.getExtensions().getExtraProperties();
 		if (!extraProperties.has("kotlin.version")) {
-			String kotlinVersion = project.getPlugins().getPlugin(KotlinPluginWrapper.class).getKotlinPluginVersion();
+			String kotlinVersion = getKotlinVersion(project);
 			extraProperties.set("kotlin.version", kotlinVersion);
 		}
 		enableJavaParametersOption(project);
+	}
+
+	private String getKotlinVersion(Project project) {
+		return KotlinPluginWrapperKt.getKotlinPluginVersion(project);
 	}
 
 	private void enableJavaParametersOption(Project project) {

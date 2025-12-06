@@ -39,16 +39,6 @@ class Saml2RelyingPartyPropertiesTests {
 
 	private final Saml2RelyingPartyProperties properties = new Saml2RelyingPartyProperties();
 
-	@Deprecated
-	@Test
-	void customizeSsoUrlDeprecated() {
-		bind("spring.security.saml2.relyingparty.registration.simplesamlphp.identity-provider.sso-url",
-				"https://simplesaml-for-spring-saml/SSOService.php");
-		assertThat(
-				this.properties.getRegistration().get("simplesamlphp").getIdentityprovider().getSinglesignon().getUrl())
-						.isEqualTo("https://simplesaml-for-spring-saml/SSOService.php");
-	}
-
 	@Test
 	void customizeSsoUrl() {
 		bind("spring.security.saml2.relyingparty.registration.simplesamlphp.identity-provider.single-sign-on.url",

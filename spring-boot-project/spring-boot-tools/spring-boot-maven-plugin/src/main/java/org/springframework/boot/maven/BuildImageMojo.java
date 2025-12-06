@@ -217,8 +217,8 @@ public class BuildImageMojo extends AbstractPackagerMojo {
 		try {
 			DockerConfiguration dockerConfiguration = (this.docker != null) ? this.docker.asDockerConfiguration()
 					: null;
-			Builder builder = new Builder(new MojoBuildLog(this::getLog), dockerConfiguration);
 			BuildRequest request = getBuildRequest(libraries);
+			Builder builder = new Builder(new MojoBuildLog(this::getLog), dockerConfiguration);
 			builder.build(request);
 		}
 		catch (IOException ex) {
@@ -272,10 +272,7 @@ public class BuildImageMojo extends AbstractPackagerMojo {
 			archiveFile = getSourceArtifact(this.classifier).getFile();
 		}
 		if (!archiveFile.exists()) {
-			throw new IllegalStateException("Executable jar file required for building image");
-		}
-		if (archiveFile.getName().endsWith(".war")) {
-			throw new IllegalStateException("Executable jar file required for building image");
+			throw new IllegalStateException("A jar or war file is required for building image");
 		}
 		return archiveFile;
 	}

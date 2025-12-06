@@ -16,8 +16,11 @@
 
 package org.springframework.boot.actuate.metrics.web.reactive.server;
 
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import org.apache.commons.logging.Log;
@@ -26,15 +29,20 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
 import org.springframework.boot.actuate.metrics.AutoTimer;
+import org.springframework.boot.actuate.metrics.annotation.TimedAnnotations;
+import org.springframework.boot.web.reactive.error.ErrorAttributes;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.reactive.HandlerMapping;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 
 /**
- * Intercepts incoming HTTP requests handled by Spring WebFlux handlers.
+ * Intercepts incoming HTTP requests handled by Spring WebFlux handlers and records
+ * metrics about execution time and results.
  *
  * @author Jon Schneider
  * @author Brian Clozel
@@ -71,45 +79,50 @@ public class MetricsWebFilter implements WebFilter {
 
 	@Override
 	public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-		if (!this.autoTimer.isEnabled()) {
-			return chain.filter(exchange);
-		}
 		return chain.filter(exchange).transformDeferred((call) -> filter(exchange, call));
 	}
 
 	private Publisher<Void> filter(ServerWebExchange exchange, Mono<Void> call) {
 		long start = System.nanoTime();
-		return call.doOnSuccess((done) -> onSuccess(exchange, start))
-				.doOnError((cause) -> onError(exchange, start, cause));
+		return call.doOnEach((signal) -> onTerminalSignal(exchange, signal.getThrowable(), start))
+				.doOnCancel(() -> onTerminalSignal(exchange, new CancelledServerWebExchangeException(), start));
 	}
 
-	private void onSuccess(ServerWebExchange exchange, long start) {
-		record(exchange, start, null);
-	}
-
-	private void onError(ServerWebExchange exchange, long start, Throwable cause) {
+	private void onTerminalSignal(ServerWebExchange exchange, Throwable cause, long start) {
 		ServerHttpResponse response = exchange.getResponse();
-		if (response.isCommitted()) {
-			record(exchange, start, cause);
+		if (response.isCommitted() || cause instanceof CancelledServerWebExchangeException) {
+			record(exchange, cause, start);
 		}
 		else {
 			response.beforeCommit(() -> {
-				record(exchange, start, cause);
+				record(exchange, cause, start);
 				return Mono.empty();
 			});
 		}
 	}
 
-	private void record(ServerWebExchange exchange, long start, Throwable cause) {
+	private void record(ServerWebExchange exchange, Throwable cause, long start) {
 		try {
+			cause = (cause != null) ? cause : exchange.getAttribute(ErrorAttributes.ERROR_ATTRIBUTE);
+			Object handler = exchange.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE);
+			Set<Timed> annotations = getTimedAnnotations(handler);
 			Iterable<Tag> tags = this.tagsProvider.httpRequestTags(exchange, cause);
-			this.autoTimer.builder(this.metricName).tags(tags).register(this.registry).record(System.nanoTime() - start,
-					TimeUnit.NANOSECONDS);
+			long duration = System.nanoTime() - start;
+			AutoTimer.apply(this.autoTimer, this.metricName, annotations,
+					(builder) -> builder.tags(tags).register(this.registry).record(duration, TimeUnit.NANOSECONDS));
 		}
 		catch (Exception ex) {
 			logger.warn("Failed to record timer metrics", ex);
 			// Allow exchange to continue, unaffected by metrics problem
 		}
+	}
+
+	private Set<Timed> getTimedAnnotations(Object handler) {
+		if (handler instanceof HandlerMethod) {
+			HandlerMethod handlerMethod = (HandlerMethod) handler;
+			return TimedAnnotations.get(handlerMethod.getMethod(), handlerMethod.getBeanType());
+		}
+		return Collections.emptySet();
 	}
 
 }
