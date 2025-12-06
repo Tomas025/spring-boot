@@ -240,7 +240,6 @@ public class WebMvcProperties {
 		return this.pathmatch;
 	}
 
-	@SuppressWarnings("deprecation")
 	public void checkConfiguration() {
 		if (this.getPathmatch().getMatchingStrategy() == MatchingStrategy.PATH_PATTERN_PARSER) {
 			if (this.getPathmatch().isUseSuffixPattern()) {
@@ -250,10 +249,6 @@ public class WebMvcProperties {
 			if (this.getPathmatch().isUseRegisteredSuffixPattern()) {
 				throw new IncompatibleConfigurationException("spring.mvc.pathmatch.matching-strategy",
 						"spring.mvc.pathmatch.use-registered-suffix-pattern");
-			}
-			if (!this.getServlet().getServletMapping().equals("/")) {
-				throw new IncompatibleConfigurationException("spring.mvc.pathmatch.matching-strategy",
-						"spring.mvc.servlet.path");
 			}
 		}
 	}

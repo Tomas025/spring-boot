@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.attribute.BasicFileAttributeView;
@@ -41,6 +42,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.FileCopyUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
@@ -84,8 +88,8 @@ class ExtractCommandTests {
 	}
 
 	@Test
-	void runExtractsLayers() throws Exception {
-		given(this.context.getJarFile()).willReturn(this.jarFile);
+	void runExtractsLayers() {
+		given(this.context.getArchiveFile()).willReturn(this.jarFile);
 		given(this.context.getWorkingDir()).willReturn(this.extract);
 		this.command.run(Collections.emptyMap(), Collections.emptyList());
 		assertThat(this.extract.list()).containsOnly("a", "b", "c", "d");
@@ -117,7 +121,7 @@ class ExtractCommandTests {
 
 	@Test
 	void runWhenHasDestinationOptionExtractsLayers() {
-		given(this.context.getJarFile()).willReturn(this.jarFile);
+		given(this.context.getArchiveFile()).willReturn(this.jarFile);
 		File out = new File(this.extract, "out");
 		this.command.run(Collections.singletonMap(ExtractCommand.DESTINATION_OPTION, out.getAbsolutePath()),
 				Collections.emptyList());
@@ -129,7 +133,7 @@ class ExtractCommandTests {
 
 	@Test
 	void runWhenHasLayerParamsExtractsLimitedLayers() {
-		given(this.context.getJarFile()).willReturn(this.jarFile);
+		given(this.context.getArchiveFile()).willReturn(this.jarFile);
 		given(this.context.getWorkingDir()).willReturn(this.extract);
 		this.command.run(Collections.emptyMap(), Arrays.asList("a", "c"));
 		assertThat(this.extract.list()).containsOnly("a", "c");
@@ -144,7 +148,7 @@ class ExtractCommandTests {
 		try (FileWriter writer = new FileWriter(file)) {
 			writer.write("text");
 		}
-		given(this.context.getJarFile()).willReturn(file);
+		given(this.context.getArchiveFile()).willReturn(file);
 		given(this.context.getWorkingDir()).willReturn(this.extract);
 		assertThatIllegalStateException()
 				.isThrownBy(() -> this.command.run(Collections.emptyMap(), Collections.emptyList()))
@@ -152,7 +156,7 @@ class ExtractCommandTests {
 	}
 
 	@Test
-	void runWithJarFileThatWouldWriteEntriesOutsideDestinationFails() throws IOException {
+	void runWithJarFileThatWouldWriteEntriesOutsideDestinationFails() throws Exception {
 		this.jarFile = createJarFile("test.jar", (out) -> {
 			try {
 				out.putNextEntry(new ZipEntry("e/../../e.jar"));
@@ -162,18 +166,18 @@ class ExtractCommandTests {
 				throw new IllegalStateException(ex);
 			}
 		});
-		given(this.context.getJarFile()).willReturn(this.jarFile);
+		given(this.context.getArchiveFile()).willReturn(this.jarFile);
 		assertThatIllegalStateException()
 				.isThrownBy(() -> this.command.run(Collections.emptyMap(), Collections.emptyList()))
 				.withMessageContaining("Entry 'e/../../e.jar' would be written");
 	}
 
-	private File createJarFile(String name) throws IOException {
+	private File createJarFile(String name) throws Exception {
 		return createJarFile(name, (out) -> {
 		});
 	}
 
-	private File createJarFile(String name, Consumer<ZipOutputStream> streamHandler) throws IOException {
+	private File createJarFile(String name, Consumer<ZipOutputStream> streamHandler) throws Exception {
 		File file = new File(this.temp, name);
 		try (ZipOutputStream out = new ZipOutputStream(new FileOutputStream(file))) {
 			out.putNextEntry(entry("a/"));
@@ -190,6 +194,9 @@ class ExtractCommandTests {
 			out.closeEntry();
 			out.putNextEntry(entry("d/"));
 			out.closeEntry();
+			out.putNextEntry(entry("META-INF/MANIFEST.MF"));
+			out.write(getFile("test-manifest.MF").getBytes());
+			out.closeEntry();
 			streamHandler.accept(out);
 		}
 		return file;
@@ -201,6 +208,12 @@ class ExtractCommandTests {
 		entry.setLastModifiedTime(LAST_MODIFIED_TIME);
 		entry.setLastAccessTime(LAST_ACCESS_TIME);
 		return entry;
+	}
+
+	private String getFile(String fileName) throws Exception {
+		ClassPathResource resource = new ClassPathResource(fileName, getClass());
+		InputStreamReader reader = new InputStreamReader(resource.getInputStream());
+		return FileCopyUtils.copyToString(reader);
 	}
 
 	private static class TestLayers implements Layers {

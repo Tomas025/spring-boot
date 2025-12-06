@@ -92,7 +92,7 @@ class WebMvcEndpointExposureIntegrationTests {
 			assertThat(isExposed(client, HttpMethod.GET, "customservlet")).isFalse();
 			assertThat(isExposed(client, HttpMethod.GET, "env")).isFalse();
 			assertThat(isExposed(client, HttpMethod.GET, "health")).isTrue();
-			assertThat(isExposed(client, HttpMethod.GET, "info")).isTrue();
+			assertThat(isExposed(client, HttpMethod.GET, "info")).isFalse();
 			assertThat(isExposed(client, HttpMethod.GET, "mappings")).isFalse();
 			assertThat(isExposed(client, HttpMethod.POST, "shutdown")).isFalse();
 			assertThat(isExposed(client, HttpMethod.GET, "threaddump")).isFalse();
@@ -172,7 +172,7 @@ class WebMvcEndpointExposureIntegrationTests {
 				.responseTimeout(Duration.ofMinutes(5)).build();
 	}
 
-	private boolean isExposed(WebTestClient client, HttpMethod method, String path) throws Exception {
+	private boolean isExposed(WebTestClient client, HttpMethod method, String path) {
 		path = "/actuator/" + path;
 		EntityExchangeResult<byte[]> result = client.method(method).uri(path).exchange().expectBody().returnResult();
 		if (result.getStatus() == HttpStatus.OK) {

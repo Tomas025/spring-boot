@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.spi.PersistenceUnitInfo;
 import javax.sql.DataSource;
 
 import org.hibernate.engine.transaction.jta.platform.internal.NoJtaPlatform;
@@ -32,6 +33,7 @@ import org.springframework.boot.autoconfigure.TestAutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.test.City;
+import org.springframework.boot.autoconfigure.sql.init.SqlInitializationAutoConfiguration;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.test.context.assertj.AssertableApplicationContext;
@@ -74,8 +76,9 @@ abstract class AbstractJpaAutoConfigurationTests {
 				.withPropertyValues("spring.datasource.generate-unique-name=true",
 						"spring.jta.log-dir="
 								+ new File(new BuildOutput(getClass()).getRootLocation(), "transaction-logs"))
-				.withUserConfiguration(TestConfiguration.class).withConfiguration(AutoConfigurations.of(
-						DataSourceAutoConfiguration.class, TransactionAutoConfiguration.class, autoConfiguredClass));
+				.withUserConfiguration(TestConfiguration.class).withConfiguration(
+						AutoConfigurations.of(DataSourceAutoConfiguration.class, TransactionAutoConfiguration.class,
+								SqlInitializationAutoConfiguration.class, autoConfiguredClass));
 	}
 
 	protected ApplicationContextRunner contextRunner() {
@@ -230,6 +233,19 @@ abstract class AbstractJpaAutoConfigurationTests {
 							.getBean(LocalContainerEntityManagerFactoryBean.class);
 					assertThat(entityManagerFactoryBean).hasFieldOrPropertyWithValue("persistenceUnitManager",
 							context.getBean(PersistenceUnitManager.class));
+				});
+	}
+
+	@Test
+	void customPersistenceUnitPostProcessors() {
+		this.contextRunner.withUserConfiguration(TestConfigurationWithCustomPersistenceUnitPostProcessors.class)
+				.run((context) -> {
+					LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = context
+							.getBean(LocalContainerEntityManagerFactoryBean.class);
+					PersistenceUnitInfo persistenceUnitInfo = entityManagerFactoryBean.getPersistenceUnitInfo();
+					assertThat(persistenceUnitInfo).isNotNull();
+					assertThat(persistenceUnitInfo.getManagedClassNames())
+							.contains("customized.attribute.converter.class.name");
 				});
 	}
 
@@ -392,7 +408,18 @@ abstract class AbstractJpaAutoConfigurationTests {
 
 	}
 
-	@SuppressWarnings("serial")
+	@Configuration(proxyBeanMethods = false)
+	@TestAutoConfigurationPackage(AbstractJpaAutoConfigurationTests.class)
+	static class TestConfigurationWithCustomPersistenceUnitPostProcessors {
+
+		@Bean
+		EntityManagerFactoryBuilderCustomizer entityManagerFactoryBuilderCustomizer() {
+			return (builder) -> builder.setPersistenceUnitPostProcessors(
+					(pui) -> pui.addManagedClassName("customized.attribute.converter.class.name"));
+		}
+
+	}
+
 	static class CustomJpaTransactionManager extends JpaTransactionManager {
 
 	}

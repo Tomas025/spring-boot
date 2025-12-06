@@ -4,6 +4,7 @@
 	<disallow pkg="io.micrometer" />
 	<allow pkg=".*" regex="true" />
 	<subpackage name="autoconfigure">
+		<disallow class="org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"/>
 		<subpackage name="web">
 			<allow pkg="org.springframework.boot.web.server" />
 			<allow pkg="org.springframework.boot.web.servlet.server" />
@@ -57,7 +58,7 @@
 		</subpackage>
 	</subpackage>
 
-	<subpackage name="docs.actuate">
+	<subpackage name="docs">
 		<allow pkg="io.micrometer" />
 	</subpackage>
 

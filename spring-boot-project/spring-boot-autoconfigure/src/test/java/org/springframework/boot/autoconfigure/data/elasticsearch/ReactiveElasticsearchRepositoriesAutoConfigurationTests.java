@@ -54,8 +54,10 @@ class ReactiveElasticsearchRepositoriesAutoConfigurationTests {
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(ReactiveElasticsearchRestClientAutoConfiguration.class,
 					ReactiveElasticsearchRepositoriesAutoConfiguration.class, ElasticsearchDataAutoConfiguration.class))
-			.withPropertyValues("spring.data.elasticsearch.client.reactive.endpoints=" + elasticsearch.getHost() + ":"
-					+ elasticsearch.getFirstMappedPort());
+			.withPropertyValues(
+					"spring.data.elasticsearch.client.reactive.endpoints=" + elasticsearch.getHost() + ":"
+							+ elasticsearch.getFirstMappedPort(),
+					"spring.data.elasticsearch.client.reactive.socket-timeout=30s");
 
 	@Test
 	void testDefaultRepositoryConfiguration() {

@@ -23,7 +23,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.springframework.boot.actuate.endpoint.http.ApiVersion;
+import org.springframework.boot.actuate.endpoint.ApiVersion;
 import org.springframework.util.Assert;
 
 /**

@@ -58,6 +58,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.actuate.metrics.AutoTimer;
+import org.springframework.boot.web.servlet.error.ErrorAttributes;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -286,7 +287,8 @@ class WebMvcMetricsFilterTests {
 	@Test
 	void endpointThrowsError() throws Exception {
 		this.mvc.perform(get("/api/c1/error/10")).andExpect(status().is4xxClientError());
-		assertThat(this.registry.get("http.server.requests").tags("status", "422").timer().count()).isEqualTo(1L);
+		assertThat(this.registry.get("http.server.requests").tags("status", "422", "exception", "IllegalStateException")
+				.timer().count()).isEqualTo(1L);
 	}
 
 	@Test
@@ -520,6 +522,8 @@ class WebMvcMetricsFilterTests {
 		@ExceptionHandler(IllegalStateException.class)
 		@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
 		ModelAndView defaultErrorHandler(HttpServletRequest request, Exception e) {
+			// this is done by ErrorAttributes implementations
+			request.setAttribute(ErrorAttributes.ERROR_ATTRIBUTE, e);
 			return new ModelAndView("myerror");
 		}
 

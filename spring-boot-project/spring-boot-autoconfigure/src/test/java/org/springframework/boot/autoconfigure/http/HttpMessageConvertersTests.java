@@ -35,7 +35,6 @@ import org.springframework.http.converter.smile.MappingJackson2SmileHttpMessageC
 import org.springframework.http.converter.support.AllEncompassingFormHttpMessageConverter;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.http.converter.xml.SourceHttpMessageConverter;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -155,10 +154,9 @@ class HttpMessageConvertersTests {
 				MappingJackson2HttpMessageConverter.class, MappingJackson2SmileHttpMessageConverter.class);
 	}
 
-	@SuppressWarnings("unchecked")
 	private List<HttpMessageConverter<?>> extractFormPartConverters(List<HttpMessageConverter<?>> converters) {
 		AllEncompassingFormHttpMessageConverter formConverter = findFormConverter(converters);
-		return (List<HttpMessageConverter<?>>) ReflectionTestUtils.getField(formConverter, "partConverters");
+		return formConverter.getPartConverters();
 	}
 
 	private AllEncompassingFormHttpMessageConverter findFormConverter(Collection<HttpMessageConverter<?>> converters) {

@@ -28,10 +28,10 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import org.springframework.boot.actuate.endpoint.ApiVersion;
 import org.springframework.boot.actuate.endpoint.InvocationContext;
+import org.springframework.boot.actuate.endpoint.OperationArgumentResolver;
 import org.springframework.boot.actuate.endpoint.SecurityContext;
-import org.springframework.boot.actuate.endpoint.http.ApiVersion;
-import org.springframework.boot.actuate.endpoint.invoke.MissingParametersException;
 import org.springframework.boot.actuate.endpoint.invoke.OperationInvoker;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -226,10 +226,10 @@ class CachingOperationInvokerTests {
 		OperationInvoker target = mock(OperationInvoker.class);
 		Object expectedV2 = new Object();
 		Object expectedV3 = new Object();
-		InvocationContext contextV2 = new InvocationContext(ApiVersion.V2, mock(SecurityContext.class),
-				Collections.emptyMap());
-		InvocationContext contextV3 = new InvocationContext(ApiVersion.V3, mock(SecurityContext.class),
-				Collections.emptyMap());
+		InvocationContext contextV2 = new InvocationContext(mock(SecurityContext.class), Collections.emptyMap(),
+				new ApiVersionArgumentResolver(ApiVersion.V2));
+		InvocationContext contextV3 = new InvocationContext(mock(SecurityContext.class), Collections.emptyMap(),
+				new ApiVersionArgumentResolver(ApiVersion.V3));
 		given(target.invoke(contextV2)).willReturn(expectedV2);
 		given(target.invoke(contextV3)).willReturn(expectedV3);
 		CachingOperationInvoker invoker = new CachingOperationInvoker(target, CACHE_TTL);
@@ -246,7 +246,7 @@ class CachingOperationInvokerTests {
 		static AtomicInteger invocations = new AtomicInteger();
 
 		@Override
-		public Mono<String> invoke(InvocationContext context) throws MissingParametersException {
+		public Mono<String> invoke(InvocationContext context) {
 			return Mono.fromCallable(() -> {
 				invocations.incrementAndGet();
 				return "test";
@@ -260,8 +260,29 @@ class CachingOperationInvokerTests {
 		static AtomicInteger invocations = new AtomicInteger();
 
 		@Override
-		public Flux<String> invoke(InvocationContext context) throws MissingParametersException {
+		public Flux<String> invoke(InvocationContext context) {
 			return Flux.just("spring", "boot").hide().doFirst(invocations::incrementAndGet);
+		}
+
+	}
+
+	private static final class ApiVersionArgumentResolver implements OperationArgumentResolver {
+
+		private final ApiVersion apiVersion;
+
+		private ApiVersionArgumentResolver(ApiVersion apiVersion) {
+			this.apiVersion = apiVersion;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public <T> T resolve(Class<T> type) {
+			return (T) this.apiVersion;
+		}
+
+		@Override
+		public boolean canResolve(Class<?> type) {
+			return ApiVersion.class.equals(type);
 		}
 
 	}

@@ -153,6 +153,24 @@ class BuildImageTests extends AbstractArchiveIntegrationTests {
 	}
 
 	@TestTemplate
+	void whenBuildImageIsInvokedWithWarPackaging(MavenBuild mavenBuild) {
+		mavenBuild.project("build-image-war-packaging").goals("package")
+				.systemProperty("spring-boot.build-image.pullPolicy", "IF_NOT_PRESENT")
+				.prepare(this::writeLongNameResource).execute((project) -> {
+					File war = new File(project, "target/build-image-war-packaging-0.0.1.BUILD-SNAPSHOT.war");
+					assertThat(war).isFile();
+					File original = new File(project,
+							"target/build-image-war-packaging-0.0.1.BUILD-SNAPSHOT.war.original");
+					assertThat(original).doesNotExist();
+					assertThat(buildLog(project)).contains("Building image")
+							.contains("docker.io/library/build-image-war-packaging:0.0.1.BUILD-SNAPSHOT")
+							.contains("---> Test Info buildpack building").contains("---> Test Info buildpack done")
+							.contains("Successfully built image");
+					removeImage("build-image-war-packaging", "0.0.1.BUILD-SNAPSHOT");
+				});
+	}
+
+	@TestTemplate
 	void whenBuildImageIsInvokedWithCustomImageName(MavenBuild mavenBuild) {
 		mavenBuild.project("build-image-custom-name").goals("package")
 				.systemProperty("spring-boot.build-image.pullPolicy", "IF_NOT_PRESENT")
@@ -229,6 +247,30 @@ class BuildImageTests extends AbstractArchiveIntegrationTests {
 	}
 
 	@TestTemplate
+	void whenBuildImageIsInvokedWithBuildpacks(MavenBuild mavenBuild) {
+		mavenBuild.project("build-image-custom-buildpacks").goals("package")
+				.systemProperty("spring-boot.build-image.pullPolicy", "IF_NOT_PRESENT").execute((project) -> {
+					assertThat(buildLog(project)).contains("Building image")
+							.contains("docker.io/library/build-image-custom-buildpacks:0.0.1.BUILD-SNAPSHOT")
+							.contains("Successfully built image");
+					removeImage("build-image-custom-buildpacks", "0.0.1.BUILD-SNAPSHOT");
+				});
+	}
+
+	@TestTemplate
+	void whenBuildImageIsInvokedWithBinding(MavenBuild mavenBuild) {
+		mavenBuild.project("build-image-bindings").goals("package")
+				.systemProperty("spring-boot.build-image.pullPolicy", "IF_NOT_PRESENT").execute((project) -> {
+					assertThat(buildLog(project)).contains("Building image")
+							.contains("docker.io/library/build-image-bindings:0.0.1.BUILD-SNAPSHOT")
+							.contains("binding: ca-certificates/type=ca-certificates")
+							.contains("binding: ca-certificates/test.crt=---certificate one---")
+							.contains("Successfully built image");
+					removeImage("build-image-bindings", "0.0.1.BUILD-SNAPSHOT");
+				});
+	}
+
+	@TestTemplate
 	void whenBuildImageIsInvokedOnMultiModuleProjectWithPackageGoal(MavenBuild mavenBuild) {
 		mavenBuild.project("build-image-multi-module").goals("package")
 				.systemProperty("spring-boot.build-image.pullPolicy", "IF_NOT_PRESENT").execute((project) -> {
@@ -262,9 +304,11 @@ class BuildImageTests extends AbstractArchiveIntegrationTests {
 	}
 
 	@TestTemplate
-	void failsWithWarPackaging(MavenBuild mavenBuild) {
-		mavenBuild.project("build-image-war-packaging").goals("package").executeAndFail(
-				(project) -> assertThat(buildLog(project)).contains("Executable jar file required for building image"));
+	void failsWithBuildpackNotInBuilder(MavenBuild mavenBuild) {
+		mavenBuild.project("build-image-bad-buildpack").goals("package")
+				.systemProperty("spring-boot.build-image.pullPolicy", "IF_NOT_PRESENT")
+				.executeAndFail((project) -> assertThat(buildLog(project))
+						.contains("'urn:cnb:builder:example/does-not-exist:0.0.1' not found in builder"));
 	}
 
 	@TestTemplate

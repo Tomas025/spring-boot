@@ -17,5 +17,5 @@ dependencies {
 	}
 	api("jakarta.servlet:jakarta.servlet-api")
 	api("jakarta.websocket:jakarta.websocket-api")
-	api("org.glassfish:jakarta.el")
+	api("org.apache.tomcat.embed:tomcat-embed-el")
 }

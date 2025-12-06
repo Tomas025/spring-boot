@@ -98,9 +98,8 @@ public class SpringApplicationBuilder {
 	}
 
 	/**
-	 * Creates a new {@link org.springframework.boot.SpringApplication} instances from the
-	 * given sources. Subclasses may override in order to provide a custom subclass of
-	 * {@link org.springframework.boot.SpringApplication}.
+	 * Creates a new {@link SpringApplication} instance from the given sources. Subclasses
+	 * may override in order to provide a custom subclass of {@link SpringApplication}.
 	 * @param sources the sources
 	 * @return the {@link org.springframework.boot.SpringApplication} instance
 	 * @since 1.1.0
@@ -547,6 +546,18 @@ public class SpringApplicationBuilder {
 	public SpringApplicationBuilder environment(ConfigurableEnvironment environment) {
 		this.application.setEnvironment(environment);
 		this.environment = environment;
+		return this;
+	}
+
+	/**
+	 * Prefix that should be applied when obtaining configuration properties from the
+	 * system environment.
+	 * @param environmentPrefix the environment property prefix to set
+	 * @return the current builder
+	 * @since 2.5.0
+	 */
+	public SpringApplicationBuilder environmentPrefix(String environmentPrefix) {
+		this.application.setEnvironmentPrefix(environmentPrefix);
 		return this;
 	}
 

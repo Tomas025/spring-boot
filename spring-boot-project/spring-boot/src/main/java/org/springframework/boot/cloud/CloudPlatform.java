@@ -16,6 +16,9 @@
 
 package org.springframework.boot.cloud;
 
+import java.util.Arrays;
+import java.util.List;
+
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
@@ -129,6 +132,21 @@ public enum CloudPlatform {
 				}
 			}
 			return false;
+		}
+
+	},
+
+	/**
+	 * Azure App Service platform.
+	 */
+	AZURE_APP_SERVICE {
+
+		private final List<String> azureEnvVariables = Arrays.asList("WEBSITE_SITE_NAME", "WEBSITE_INSTANCE_ID",
+				"WEBSITE_RESOURCE_GROUP", "WEBSITE_SKU");
+
+		@Override
+		public boolean isDetected(Environment environment) {
+			return this.azureEnvVariables.stream().allMatch(environment::containsProperty);
 		}
 
 	};

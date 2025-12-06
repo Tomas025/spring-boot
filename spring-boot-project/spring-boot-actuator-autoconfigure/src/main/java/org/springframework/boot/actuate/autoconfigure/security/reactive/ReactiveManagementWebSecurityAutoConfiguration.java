@@ -20,7 +20,6 @@ import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointAu
 import org.springframework.boot.actuate.autoconfigure.health.HealthEndpointAutoConfiguration;
 import org.springframework.boot.actuate.autoconfigure.info.InfoEndpointAutoConfiguration;
 import org.springframework.boot.actuate.health.HealthEndpoint;
-import org.springframework.boot.actuate.info.InfoEndpoint;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -43,8 +42,8 @@ import org.springframework.web.cors.reactive.PreFlightRequestWebFilter;
 
 /**
  * {@link EnableAutoConfiguration Auto-configuration} for Reactive Spring Security when
- * actuator is on the classpath. Specifically, it permits access to the health and info
- * endpoints while securing everything else.
+ * actuator is on the classpath. Specifically, it permits access to the health endpoint
+ * while securing everything else.
  *
  * @author Madhura Bhave
  * @since 2.1.0
@@ -62,7 +61,7 @@ public class ReactiveManagementWebSecurityAutoConfiguration {
 	@Bean
 	public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http, PreFlightRequestHandler handler) {
 		http.authorizeExchange((exchanges) -> {
-			exchanges.matchers(EndpointRequest.to(HealthEndpoint.class, InfoEndpoint.class)).permitAll();
+			exchanges.matchers(EndpointRequest.to(HealthEndpoint.class)).permitAll();
 			exchanges.anyExchange().authenticated();
 		});
 		PreFlightRequestWebFilter filter = new PreFlightRequestWebFilter(handler);
