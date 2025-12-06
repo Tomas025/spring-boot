@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.EmbeddedDataSourceConfiguration;
 import org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
 import org.springframework.boot.autoconfigure.session.JdbcSessionConfiguration.SpringBootJdbcHttpSessionConfiguration;
@@ -60,9 +60,9 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 class SessionAutoConfigurationJdbcTests extends AbstractSessionAutoConfigurationTests {
 
 	private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(DataSourceTransactionManagerAutoConfiguration.class,
-					JdbcTemplateAutoConfiguration.class, SessionAutoConfiguration.class))
-			.withUserConfiguration(EmbeddedDataSourceConfiguration.class)
+			.withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class,
+					DataSourceTransactionManagerAutoConfiguration.class, JdbcTemplateAutoConfiguration.class,
+					SessionAutoConfiguration.class))
 			.withPropertyValues("spring.datasource.generate-unique-name=true");
 
 	@Test

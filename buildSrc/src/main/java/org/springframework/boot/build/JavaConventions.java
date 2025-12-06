@@ -170,10 +170,6 @@ class JavaConventions {
 				}));
 	}
 
-	private boolean buildingWithJava8(Project project) {
-		return (!project.hasProperty("buildJavaHome")) && JavaVersion.current() == JavaVersion.VERSION_1_8;
-	}
-
 	private boolean isCi() {
 		return Boolean.parseBoolean(System.getenv("CI"));
 	}
@@ -197,11 +193,15 @@ class JavaConventions {
 				compile.setSourceCompatibility(SOURCE_AND_TARGET_COMPATIBILITY);
 				compile.setTargetCompatibility(SOURCE_AND_TARGET_COMPATIBILITY);
 			}
-			else if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
+			else if (buildingWithJava8(project)) {
 				args.addAll(Arrays.asList("-Werror", "-Xlint:unchecked", "-Xlint:deprecation", "-Xlint:rawtypes",
 						"-Xlint:varargs"));
 			}
 		});
+	}
+
+	private boolean buildingWithJava8(Project project) {
+		return !project.hasProperty("toolchainVersion") && JavaVersion.current() == JavaVersion.VERSION_1_8;
 	}
 
 	private void configureSpringJavaFormat(Project project) {

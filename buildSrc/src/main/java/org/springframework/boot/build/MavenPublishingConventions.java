@@ -25,6 +25,7 @@ import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.publish.PublishingExtension;
+import org.gradle.api.publish.VariantVersionMappingStrategy;
 import org.gradle.api.publish.maven.MavenPom;
 import org.gradle.api.publish.maven.MavenPomDeveloperSpec;
 import org.gradle.api.publish.maven.MavenPomIssueManagement;
@@ -103,8 +104,8 @@ class MavenPublishingConventions {
 		addMavenOptionalFeature(project);
 		publication.versionMapping((strategy) -> strategy.usage(Usage.JAVA_API, (mappingStrategy) -> mappingStrategy
 				.fromResolutionOf(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME)));
-		publication.versionMapping((strategy) -> strategy.usage(Usage.JAVA_RUNTIME,
-				(mappingStrategy) -> mappingStrategy.fromResolutionResult()));
+		publication.versionMapping(
+				(strategy) -> strategy.usage(Usage.JAVA_RUNTIME, VariantVersionMappingStrategy::fromResolutionResult));
 	}
 
 	/**

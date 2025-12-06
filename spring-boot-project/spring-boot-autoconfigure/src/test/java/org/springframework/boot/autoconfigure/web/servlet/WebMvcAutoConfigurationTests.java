@@ -696,8 +696,8 @@ class WebMvcAutoConfigurationTests {
 		this.contextRunner.withPropertyValues(prefix + "static-locations:classpath:/welcome-page/")
 				.withUserConfiguration(CorsConfigurer.class).run((context) -> {
 					WelcomePageHandlerMapping bean = context.getBean(WelcomePageHandlerMapping.class);
-					UrlBasedCorsConfigurationSource source = (UrlBasedCorsConfigurationSource) ReflectionTestUtils
-							.getField(bean, "corsConfigurationSource");
+					UrlBasedCorsConfigurationSource source = (UrlBasedCorsConfigurationSource) bean
+							.getCorsConfigurationSource();
 					assertThat(source.getCorsConfigurations()).containsKey("/**");
 				});
 	}
@@ -852,7 +852,6 @@ class WebMvcAutoConfigurationTests {
 
 	@Test
 	@Deprecated
-	@SuppressWarnings("deprecation")
 	void useSuffixPatternMatch() {
 		this.contextRunner.withPropertyValues("spring.mvc.pathmatch.use-suffix-pattern:true",
 				"spring.mvc.pathmatch.use-registered-suffix-pattern:true").run((context) -> {

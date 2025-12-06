@@ -131,6 +131,23 @@ public enum CloudPlatform {
 			return false;
 		}
 
+	},
+
+	/**
+	 * Azure App Service platform.
+	 */
+	AZURE_APP_SERVICE {
+
+		private static final String WEBSITE_SITE_NAME = "WEBSITE_SITE_NAME";
+
+		private static final String WEBSITES_ENABLE_APP_SERVICE_STORAGE = "WEBSITES_ENABLE_APP_SERVICE_STORAGE";
+
+		@Override
+		public boolean isDetected(Environment environment) {
+			return environment.containsProperty(WEBSITE_SITE_NAME)
+					&& environment.containsProperty(WEBSITES_ENABLE_APP_SERVICE_STORAGE);
+		}
+
 	};
 
 	private static final String PROPERTY_NAME = "spring.main.cloud-platform";

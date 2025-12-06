@@ -92,10 +92,14 @@ class JavaPluginActionIntegrationTests {
 	}
 
 	@TestTemplate
-	void assembleRunsBootJarAndJarIsSkipped() {
+	void assembleRunsBootJarAndJar() {
 		BuildResult result = this.gradleBuild.build("assemble");
 		assertThat(result.task(":bootJar").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-		assertThat(result.task(":jar").getOutcome()).isEqualTo(TaskOutcome.SKIPPED);
+		assertThat(result.task(":jar").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
+		File buildLibs = new File(this.gradleBuild.getProjectDir(), "build/libs");
+		assertThat(buildLibs.listFiles()).containsExactlyInAnyOrder(
+				new File(buildLibs, this.gradleBuild.getProjectDir().getName() + ".jar"),
+				new File(buildLibs, this.gradleBuild.getProjectDir().getName() + "-plain.jar"));
 	}
 
 	@TestTemplate
@@ -103,17 +107,6 @@ class JavaPluginActionIntegrationTests {
 		BuildResult result = this.gradleBuild.buildAndFail("build", "-PapplyJavaPlugin");
 		assertThat(result.task(":bootJar").getOutcome()).isEqualTo(TaskOutcome.FAILED);
 		assertThat(result.getOutput()).contains("Main class name has not been configured and it could not be resolved");
-	}
-
-	@TestTemplate
-	void jarAndBootJarCanBothBeBuilt() {
-		BuildResult result = this.gradleBuild.build("assemble");
-		assertThat(result.task(":bootJar").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-		assertThat(result.task(":jar").getOutcome()).isEqualTo(TaskOutcome.SUCCESS);
-		File buildLibs = new File(this.gradleBuild.getProjectDir(), "build/libs");
-		assertThat(buildLibs.listFiles()).containsExactlyInAnyOrder(
-				new File(buildLibs, this.gradleBuild.getProjectDir().getName() + ".jar"),
-				new File(buildLibs, this.gradleBuild.getProjectDir().getName() + "-boot.jar"));
 	}
 
 	@TestTemplate

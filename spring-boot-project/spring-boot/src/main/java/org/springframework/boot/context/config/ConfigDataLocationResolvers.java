@@ -54,7 +54,7 @@ class ConfigDataLocationResolvers {
 	ConfigDataLocationResolvers(DeferredLogFactory logFactory, ConfigurableBootstrapContext bootstrapContext,
 			Binder binder, ResourceLoader resourceLoader) {
 		this(logFactory, bootstrapContext, binder, resourceLoader, SpringFactoriesLoader
-				.loadFactoryNames(ConfigDataLocationResolver.class, ConfigDataLocationResolver.class.getClassLoader()));
+				.loadFactoryNames(ConfigDataLocationResolver.class, resourceLoader.getClassLoader()));
 	}
 
 	/**
@@ -77,7 +77,7 @@ class ConfigDataLocationResolvers {
 					availableParameters.add(BootstrapContext.class, bootstrapContext);
 					availableParameters.add(BootstrapRegistry.class, bootstrapContext);
 				});
-		this.resolvers = reorder(instantiator.instantiate(names));
+		this.resolvers = reorder(instantiator.instantiate(resourceLoader.getClassLoader(), names));
 	}
 
 	private List<ConfigDataLocationResolver<?>> reorder(List<ConfigDataLocationResolver<?>> resolvers) {

@@ -16,13 +16,13 @@
 
 package org.springframework.boot.build.toolchain;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.JavaPluginExtension;
-import org.gradle.api.tasks.GradleBuild;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.api.tasks.testing.Test;
@@ -57,7 +57,7 @@ public class ToolchainPlugin implements Plugin<Project> {
 			JavaToolchainSpec toolchainSpec = project.getExtensions().getByType(JavaPluginExtension.class)
 					.getToolchain();
 			toolchainSpec.getLanguageVersion().set(toolchain.getJavaVersion());
-			configureTestToolchain(project);
+			configureTestToolchain(project, toolchain);
 		}
 	}
 
@@ -70,14 +70,13 @@ public class ToolchainPlugin implements Plugin<Project> {
 		project.getTasks().withType(JavaCompile.class, (task) -> task.setEnabled(false));
 		project.getTasks().withType(Javadoc.class, (task) -> task.setEnabled(false));
 		project.getTasks().withType(Test.class, (task) -> task.setEnabled(false));
-		project.getTasks().withType(GradleBuild.class, (task) -> task.setEnabled(false));
 	}
 
-	private void configureTestToolchain(Project project) {
-		project.getTasks().withType(Test.class, (test) -> {
-			List<String> arguments = Collections.singletonList("--illegal-access=warn");
-			test.jvmArgs(arguments);
-		});
+	private void configureTestToolchain(Project project, ToolchainExtension toolchain) {
+		List<String> jvmArgs = new ArrayList<>();
+		jvmArgs.add("--illegal-access=warn");
+		jvmArgs.addAll(toolchain.getTestJvmArgs().getOrElse(Collections.emptyList()));
+		project.getTasks().withType(Test.class, (test) -> test.jvmArgs(jvmArgs));
 	}
 
 }

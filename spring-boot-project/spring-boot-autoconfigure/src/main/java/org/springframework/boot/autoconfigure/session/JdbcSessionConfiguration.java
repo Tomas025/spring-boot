@@ -20,21 +20,18 @@ import java.time.Duration;
 
 import javax.sql.DataSource;
 
-import liquibase.integration.spring.SpringLiquibase;
-import org.flywaydb.core.Flyway;
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.AbstractDependsOnBeanFactoryPostProcessor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.flyway.FlywayMigrationInitializer;
 import org.springframework.boot.autoconfigure.web.ServerProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.sql.init.dependency.DatabaseInitializationDependencyConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.session.SessionRepository;
@@ -55,6 +52,7 @@ import org.springframework.session.jdbc.config.annotation.web.http.JdbcHttpSessi
 @ConditionalOnBean(DataSource.class)
 @Conditional(ServletSessionCondition.class)
 @EnableConfigurationProperties(JdbcSessionProperties.class)
+@Import(DatabaseInitializationDependencyConfigurer.class)
 class JdbcSessionConfiguration {
 
 	@Bean
@@ -81,43 +79,6 @@ class JdbcSessionConfiguration {
 			setCleanupCron(jdbcSessionProperties.getCleanupCron());
 			setFlushMode(jdbcSessionProperties.getFlushMode());
 			setSaveMode(jdbcSessionProperties.getSaveMode());
-		}
-
-	}
-
-	@Configuration(proxyBeanMethods = false)
-	static class JdbcIndexedSessionRepositoryDependencyConfiguration {
-
-		@Bean
-		JdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor dataSourceInitializerJdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor() {
-			return new JdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor(
-					JdbcSessionDataSourceInitializer.class);
-		}
-
-		@Bean
-		@ConditionalOnClass(name = "org.flywaydb.core.Flyway")
-		JdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor flywayJdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor() {
-			return new JdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor(FlywayMigrationInitializer.class,
-					Flyway.class);
-		}
-
-		@Bean
-		@ConditionalOnClass(name = "liquibase.integration.spring.SpringLiquibase")
-		JdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor liquibaseJdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor() {
-			return new JdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor(SpringLiquibase.class);
-		}
-
-	}
-
-	/**
-	 * {@link AbstractDependsOnBeanFactoryPostProcessor} for Spring Session JDBC's
-	 * {@link JdbcIndexedSessionRepository}.
-	 */
-	static class JdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor
-			extends AbstractDependsOnBeanFactoryPostProcessor {
-
-		JdbcIndexedSessionRepositoryDependsOnBeanFactoryPostProcessor(Class<?>... dependencyTypes) {
-			super(JdbcIndexedSessionRepository.class, dependencyTypes);
 		}
 
 	}

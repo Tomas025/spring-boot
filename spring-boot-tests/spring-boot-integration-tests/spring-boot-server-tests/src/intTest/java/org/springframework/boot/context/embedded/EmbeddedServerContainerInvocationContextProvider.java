@@ -34,7 +34,6 @@ import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.junit.jupiter.api.extension.TestTemplateInvocationContext;
 import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
@@ -141,8 +140,7 @@ class EmbeddedServerContainerInvocationContextProvider
 		}
 
 		@Override
-		public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
-				throws ParameterResolutionException {
+		public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
 			if (parameterContext.getParameter().getType().equals(AbstractApplicationLauncher.class)) {
 				return true;
 			}
@@ -153,8 +151,7 @@ class EmbeddedServerContainerInvocationContextProvider
 		}
 
 		@Override
-		public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
-				throws ParameterResolutionException {
+		public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
 			if (parameterContext.getParameter().getType().equals(AbstractApplicationLauncher.class)) {
 				return this.launcher;
 			}
@@ -172,14 +169,12 @@ class EmbeddedServerContainerInvocationContextProvider
 		}
 
 		@Override
-		public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
-				throws ParameterResolutionException {
+		public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
 			return parameterContext.getParameter().getType().equals(RestTemplate.class);
 		}
 
 		@Override
-		public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
-				throws ParameterResolutionException {
+		public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
 			RestTemplate rest = new RestTemplate(new HttpComponentsClientHttpRequestFactory(
 					HttpClients.custom().setRetryHandler(new StandardHttpRequestRetryHandler(10, false)).build()));
 			rest.setErrorHandler(new ResponseErrorHandler() {
